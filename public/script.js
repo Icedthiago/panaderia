@@ -730,3 +730,25 @@ async function borrarProducto(id) {
     showToast(err.message || 'Error borrando producto', 'error');
   }
 }
+
+function togglePasswordVisibility(inputId, toggleBtnId) {
+  const passwordInput = document.getElementById(inputId);
+  const toggleBtn = document.getElementById(toggleBtnId);
+  const icon = toggleBtn.querySelector('i');
+
+  toggleBtn.addEventListener('click', () => {
+    if (passwordInput.type === 'password') {
+      passwordInput.type = 'text';
+      icon.classList.remove('bi-eye');
+      icon.classList.add('bi-eye-slash');
+    } else {
+      passwordInput.type = 'password';
+      icon.classList.remove('bi-eye-slash');
+      icon.classList.add('bi-eye');
+    }
+  });
+}
+
+// Aplicar a ambos formularios
+togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
+togglePasswordVisibility('registerPassword', 'toggleRegisterPassword');
