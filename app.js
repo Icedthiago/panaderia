@@ -70,34 +70,56 @@ function sanitizeInput(input) {
     return String(input).replace(/<[^>]*>?/gm, '').replace(/<\?php.*?\?>/gs, '');
 }
 
+// --- Función para validar contraseña ---
+function validarPassword(password) {
+    const minLength = 8;
+    const regexMayus = /[A-Z]/;
+    const regexMinus = /[a-z]/;
+    const regexNumero = /[0-9]/;
+    const regexEspecial = /[!@#$%^&*(),.?":{}|<>]/;
+
+    if (password.length < minLength) return "La contraseña debe tener al menos 8 caracteres.";
+    if (!regexMayus.test(password)) return "La contraseña debe contener al menos una letra mayúscula.";
+    if (!regexMinus.test(password)) return "La contraseña debe contener al menos una letra minúscula.";
+    if (!regexNumero.test(password)) return "La contraseña debe contener al menos un número.";
+    if (!regexEspecial.test(password)) return "La contraseña debe contener al menos un carácter especial.";
+    return null; // si pasa todas las validaciones
+}
+
 // Registro
 app.post("/register", async (req, res) => {
     let { nombre, email, password, rol } = req.body;
     nombre = sanitizeInput(nombre);
     email = sanitizeInput(email);
-
-    // Si no elige rol, lo dejamos como 'pendiente'
     rol = sanitizeInput(rol) || 'pendiente';
 
     if (!nombre || !email || !password) {
         return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
 
-    try {
-        const [rows] = await con.promise().query("SELECT id_usuario FROM usuario WHERE email = ?", [email]);
-        if (rows.length > 0) return res.status(400).json({ error: "Email ya registrado." });
+   // Validar contraseña
+    const passError = validarPassword(newPassword);
+    if (passError) return res.status(400).json({ error: passError });
 
-        const hashed = await bcrypt.hash(password, 10);
-        const [result] = await con.promise().query(
-            "INSERT INTO usuario (nombre, email, password, rol) VALUES (?, ?, ?, ?)",
-            [nombre, email, hashed, rol]
+    try {
+        const [rows] = await con.promise().query(
+            "SELECT id_usuario FROM usuario WHERE nombre = ? AND email = ?",
+            [nombre, email]
+        );
+        if (rows.length === 0) {
+            return res.status(404).json({ error: "No se encontró usuario con esos datos." });
+        }
+
+        const hashed = await bcrypt.hash(newPassword, 10);
+        await con.promise().query(
+            "UPDATE usuario SET password = ? WHERE id_usuario = ?",
+            [hashed, rows[0].id_usuario]
         );
 
-        req.session.user = { id_usuario: result.insertId, nombre, email, rol };
-        return res.json({ mensaje: "Registrado correctamente. Selecciona tu rol para continuar.", user: req.session.user });
+        return res.json({ mensaje: "Contraseña actualizada correctamente." });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: "Error en el registro." });
+        return res.status(500).json({ error: "Error al restablecer contraseña." });
     }
 });
 
