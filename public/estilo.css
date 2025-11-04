@@ -1,0 +1,148 @@
+/* Fondo oscuro con acento púrpura */
+body {
+  background: linear-gradient(135deg, #1c1c1c 0%, #2e003e 100%);
+  color: #ffffff; /* Más blanco que #f5f5f5 */
+}
+
+/* Header vibrante estilo Día de Muertos */
+header {
+  background: linear-gradient(90deg, #ff6f00 0%, #ff4081 50%, #6a1b9a 100%);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+  
+}
+
+
+footer { background: #222; color: #fff; }
+.table thead th { background: #ffb347 !important; color: #222; font-weight: bold; }
+.btn-success {
+  background: linear-gradient(90deg, #ff6f00 0%, #ff4081 100%);
+  border: none;
+  color: #fff;
+  font-weight: bold;
+}
+.btn-success:hover {
+  background: linear-gradient(90deg, #ff4081 0%, #ff6f00 100%);
+  color: #fff;
+}
+
+.btn-danger {
+  background: linear-gradient(90deg, #6a1b9a 0%, #ff4081 100%);
+  border: none;
+  color: #fff;
+  font-weight: bold;
+}
+.card { border: none; border-radius: 1rem; overflow: hidden; box-shadow: 0 2px 8px rgba(255,179,71,0.15); transition: transform 0.2s; }
+.card:hover { transform: scale(1.04); box-shadow: 0 6px 24px rgba(255,179,71,0.25); }
+.card-img-top { height: 160px; object-fit: cover; border-bottom: 2px solid #ffb347; }
+.modal-content { border-radius: 1rem; }
+#mensajeError { font-size: 0.95rem; }
+
+/* Auth overlay styles */
+#authOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  display: flex;           /* ⚠ flex para centrar */
+  justify-content: center; /* horizontal */
+  align-items: center;     /* vertical */
+  background-color: rgba(0,0,0,0.5);
+  z-index: 9999;
+}
+#authOverlay form {
+  width: 100%;
+  max-width: 400px;
+}
+
+.auth-card {
+  width: 100%;
+  max-width: 900px;
+  background: #fff;
+}
+.auth-left { width: 50%; overflow: hidden; }
+.auth-left img { width: 100%; height: 100%; object-fit: cover; display:block; }
+.auth-right { width: 52%; background: linear-gradient(180deg,#fff 0%, #fff 100%); }
+#badgeCarrito { display: none; font-size: 0.75rem; }
+
+/* Ensure auth overlay text is dark so it's readable on white background */
+#authOverlay, #authOverlay .auth-right {
+  color: #111 !important;
+}
+
+#authOverlay .auth-right .form-label,
+#authOverlay .auth-right label,
+#authOverlay .auth-right input,
+#authOverlay .auth-right textarea,
+#authOverlay .auth-right a,
+#authOverlay .auth-right .btn {
+  color: #111 !important;
+}
+
+/* Placeholders inside auth inputs should be darker too */
+#authOverlay .auth-right input::placeholder,
+#authOverlay .auth-right textarea::placeholder {
+  color: #666 !important;
+}
+
+.table-dark {
+  background-color: #3e1f47;
+  color: #ffffff; /* Blanco brillante */
+}
+
+.table-dark th {
+  background-color: #ffb347;
+  color: #000; /* Mantener legible sobre el naranja */
+}
+
+/* Modal con fondo decorativo */
+.modal-content {
+  background: linear-gradient(180deg, #2e003e 0%, #1c1c1c 100%);
+  color: #fafafa; /* Blanco casi puro */
+}
+
+/* Footer oscuro con acento */
+footer {
+  background-color: #000;
+  color: #ffcc80;
+}
+
+/* Estilo para los títulos */
+/* Make headings explicitly white and higher specificity to override other rules */
+.container h1, .container h2, .container h3, h1, h2, h3 {
+  font-family: 'Cinzel Decorative', cursive;
+  color: #ffffff !important;
+}
+
+.text-muted, p, span, label {
+  color: #e6e6e6 !important; /* Gris claro casi blanco */
+}
+
+/* Carousel sizing and centering */
+#carouselExampleCaptions {
+  max-width: 900px; /* reduce overall width */
+  margin: 2rem auto; /* center horizontally and add vertical spacing */
+}
+
+#carouselExampleCaptions .carousel-inner {
+  border-radius: 0.75rem;
+  overflow: hidden;
+}
+
+#carouselExampleCaptions .carousel-item img {
+  width: 100%;
+  height: 360px; /* fixed height for large screens */
+  object-fit: cover; /* crop while keeping aspect ratio */
+}
+
+/* Smaller height on small screens */
+@media (max-width: 768px) {
+  #carouselExampleCaptions { max-width: 100%; margin: 1rem auto; }
+  #carouselExampleCaptions .carousel-item img { height: 220px; }
+}
+
+@media (min-width: 1200px) {
+  #carouselExampleCaptions { max-width: 1100px; }
+  #carouselExampleCaptions .carousel-item img { height: 420px; }
+}

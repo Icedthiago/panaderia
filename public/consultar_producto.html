@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Consultar Productos - Panadería La Desesperanza</title>
+
+  <!-- Bootstrap CSS -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Cinzel+Decorative&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="estilo.css" />
+</head>
+<body style="font-family: 'Cinzel Decorative', cursive;">
+
+<header class="bg-warning py-4 mb-4 shadow position-relative">
+    <div class="container d-flex align-items-center justify-content-between">
+    <div>
+      <h1 class="h1 mb-0 text-dark">Panadería La Desesperanza</h1>
+      <small class="text-dark">¡Panes de temporada Día de Muertos y Halloween!</small>
+    </div>
+    <div class="d-flex align-items-center gap-2">
+      <button id="btnCarrito" class="btn btn-outline-dark position-relative" title="Ver carrito">🛒 <span id="badgeCarrito" class="badge bg-danger position-absolute top-0 start-100 translate-middle">0</span></button>
+      <div class="dropdown">
+        <button id="btnPerfil" class="btn btn-outline-dark dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">Perfil</button>
+        <ul class="dropdown-menu dropdown-menu-end" id="perfilDropdown">
+  <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#modalEditarPerfil">Editar perfil</a></li>
+  <li><a class="dropdown-item" href="#" id="logoutBtn">Cerrar sesión</a></li>
+</ul>
+      </div>
+      <a href="/index.html" class="btn btn-primary">regresar</a>
+    </div>
+  </div>
+</header>
+
+<main class="container mb-5">
+  <h2 class="h2 text-dark mb-4">Productos del Sistema</h2>
+
+  <div class="table-responsive shadow rounded">
+    <table class="table table-hover align-middle mb-0 border">
+      <thead class="text-white" style="background: linear-gradient(90deg, #ff9800, #ffcc80); color:#222;">
+        <tr>
+          <th>#</th>
+          <th>Imagen</th>
+          <th>Nombre</th>
+          <th>Temporada</th>
+          <th>Precio</th>
+          <th>Stock</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tablaProductos"></tbody>
+    </table>
+  </div>
+</main>
+
+<!-- Modal Editar -->
+<div class="modal fade" id="modalEditar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning text-dark">
+        <h5 class="modal-title fw-bold">✏️ Editar Producto</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <form id="formEditar" class="p-3">
+        <div class="modal-body">
+          <input type="hidden" id="editId" name="id_producto">
+          <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <input type="text" id="editNombre" name="nombre" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Descripción</label>
+            <textarea id="editDescripcion" name="descripcion" class="form-control" required></textarea>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Precio</label>
+            <input type="number" step="0.01" id="editPrecio" name="precio" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Stock</label>
+            <input type="number" id="editStock" name="stock" class="form-control" required>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Temporada</label>
+            <select id="editTemporada" name="temporada" class="form-select" required>
+              <option value="">-- Selecciona una temporada --</option>
+              <option value="Dia de Muertos">Dia de Muertos 💀</option>
+              <option value="Navidad">Navidad 🎄</option>
+              <option value="Dia de reyes">Dia de reyes 🫅</option>
+              <option value="Acción de gracias">Acción de gracias 🦃</option>
+              <option value="San valentin">San valentin 💘</option>
+              <option value="Todo el año">Todo el año 🌎</option>
+            </select>
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Imagen (opcional)</label>
+            <input type="file" id="editImagen" name="imagen" class="form-control">
+            <img id="previewEdit" class="img-thumbnail mt-2" style="max-width:150px; display:none;">
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="submit" class="btn btn-success">💾 Guardar Cambios</button>
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Eliminar -->
+<div class="modal fade" id="modalEliminar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title fw-bold">🗑️ Eliminar Producto</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <p>¿Estás seguro de que deseas eliminar este producto?</p>
+        <input type="hidden" id="deleteId">
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button id="confirmEliminar" class="btn btn-danger">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<footer class="text-center text-white py-3 mt-5" style="background: linear-gradient(90deg, #4e342e 0%, #3e2723 100%);">
+  <div class="container">
+    <small>&copy; 2025 Panadería La Desesperanza</small>
+  </div>
+</footer>
+
+<!-- Modal Ver Perfil -->
+<div class="modal fade" id="modalVerPerfil" tabindex="-1" aria-labelledby="modalVerPerfilLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalVerPerfilLabel">Perfil de usuario</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body text-center">
+        <img id="verImagenPerfil" src="/perfil/imagen/0" alt="Perfil" class="rounded-circle mb-3" style="width:120px;height:120px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/120?text=Sin+Imagen'">
+        <h5 id="verNombre" class="mb-1"></h5>
+        <p class="mb-1"><strong>Email:</strong> <span id="verEmail"></span></p>
+        <p class="mb-0"><strong>Rol:</strong> <span id="verRol"></span></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-primary" id="verPerfilEditarBtn">Editar perfil</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Editar Perfil -->
+<div class="modal fade" id="modalEditarPerfil" tabindex="-1" aria-labelledby="modalEditarPerfilLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <form id="formEditarPerfil" enctype="multipart/form-data">
+        <div class="modal-header">
+          <h5 class="modal-title" id="modalEditarPerfilLabel">Editar perfil</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+        <div class="modal-body">
+          <div class="mb-3">
+            <label class="form-label">Nombre</label>
+            <input id="editarNombrePerfil" name="nombre" class="form-control" required />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Nueva contraseña (opcional)</label>
+            <input id="editarPasswordPerfil" type="password" name="newPassword" class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirmar contraseña</label>
+            <input id="editarPasswordConfirm" type="password" class="form-control" />
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Foto de perfil (opcional)</label>
+            <input id="editarImagenPerfil" type="file" accept="image/*" class="form-control" name="imagenPerfil" />
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="submit" class="btn btn-primary">Guardar</button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Gestionar Usuarios -->
+<div class="modal fade" id="modalUsuarios" tabindex="-1">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Gestionar Usuarios</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body p-4">
+        <table class="table table-hover">
+          <thead>
+            <tr>
+              <th>#</th>
+              <th>Nombre</th>
+              <th>Email</th>
+              <th>Rol</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="usuariosTabla"></tbody>
+        </table>
+        <hr>
+        <h6 class="fw-bold mb-3">Agregar nuevo usuario</h6>
+        <form id="formNuevoUsuario" class="row g-2">
+          <div class="col-md-3">
+            <input type="text" id="nuevoNombre" class="form-control" placeholder="Nombre" required>
+          </div>
+          <div class="col-md-3">
+            <input type="email" id="nuevoEmail" class="form-control" placeholder="Email" required>
+          </div>
+          <div class="col-md-3">
+            <input type="password" id="nuevoPassword" class="form-control" placeholder="Contraseña" required>
+          </div>
+          <div class="col-md-2">
+            <select id="nuevoRol" class="form-select">
+              <option value="cliente">Cliente</option>
+              <option value="admin">Admin</option>
+            </select>
+          </div>
+          <div class="col-md-1">
+            <button class="btn btn-success w-100" type="submit">Añadir</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Historial de Compras -->
+<div class="modal fade" id="modalHistorial" tabindex="-1" aria-labelledby="modalHistorialLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="modalHistorialLabel">Historial de compras</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="historialBody">
+        <!-- contenido generado desde script.js -->
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+async function cargarProductos() {
+  try {
+    const res = await fetch("/obtenerProductos");
+    const productos = await res.json();
+    const tbody = document.getElementById("tablaProductos");
+    tbody.innerHTML = '';
+
+    if (!productos || productos.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="text-center text-muted">No hay productos agregados</td></tr>`;
+      return;
+    }
+
+    productos.forEach((p, idx) => {
+      const imgSrc = p.imagen ? `/imagen/${p.id_producto}` : 'https://via.placeholder.com/80?text=Sin+Imagen';
+      tbody.insertAdjacentHTML('beforeend', `
+        <tr>
+          <td>${idx + 1}</td>
+          <td><img src="${imgSrc}" class="img-thumbnail" style="width:80px; height:80px; object-fit:cover;"></td>
+          <td>${p.nombre}</td>
+          <td>${p.temporada || 'N/A'}</td>
+          <td class="fw-semibold text-success">$${Number(p.precio).toFixed(2)}</td>
+          <td>${Number(p.stock)}</td>
+          <td>
+            <button class="btn btn-sm btn-warning me-1 btnEditar" data-id="${p.id_producto}">✏️ Editar</button>
+            <button class="btn btn-sm btn-danger btnEliminar" data-id="${p.id_producto}">🗑️ Eliminar</button>
+          </td>
+        </tr>
+      `);
+    });
+
+    // Editar
+    document.querySelectorAll('.btnEditar').forEach(btn => {
+      btn.addEventListener('click', async () => {
+        const id = btn.dataset.id;
+        const res = await fetch(`/editarProducto/${id}`);
+        const p = await res.json();
+
+        document.getElementById('editId').value = p.id_producto;
+        document.getElementById('editNombre').value = p.nombre;
+        document.getElementById('editDescripcion').value = p.descripcion;
+        document.getElementById('editPrecio').value = p.precio;
+        document.getElementById('editStock').value = p.stock;
+        document.getElementById('editTemporada').value = p.temporada;
+
+        const imgPrev = document.getElementById('previewEdit');
+        imgPrev.src = p.imagen ? `/imagen/${id}` : 'https://via.placeholder.com/150?text=Sin+Imagen';
+        imgPrev.style.display = "block";
+
+        new bootstrap.Modal(document.getElementById('modalEditar')).show();
+      });
+    });
+
+    // Eliminar
+    document.querySelectorAll('.btnEliminar').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.getElementById('deleteId').value = btn.dataset.id;
+        new bootstrap.Modal(document.getElementById('modalEliminar')).show();
+      });
+    });
+
+    // Confirmar eliminación
+    document.getElementById('confirmEliminar').onclick = async () => {
+      const id = document.getElementById('deleteId').value;
+      const res = await fetch(`/eliminarProducto/${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.ok) {
+        bootstrap.Modal.getInstance(document.getElementById('modalEliminar')).hide();
+        cargarProductos();
+      } else {
+        alert("No se pudo eliminar el producto");
+      }
+    }
+
+  } catch(err) {
+    console.error(err);
+    document.getElementById("tablaProductos").innerHTML = `
+      <tr><td colspan="7" class="text-center text-muted">Error al cargar productos</td></tr>
+    `;
+  }
+}
+
+// Vista previa de imagen
+document.getElementById("editImagen").addEventListener("change", e => {
+  const file = e.target.files[0];
+  if(file){
+    const url = URL.createObjectURL(file);
+    const img = document.getElementById("previewEdit");
+    img.src = url;
+    img.style.display = "block";
+  }
+});
+
+// Guardar cambios
+document.getElementById("formEditar").addEventListener("submit", async e => {
+  e.preventDefault();
+  const id = document.getElementById("editId").value;
+  const formData = new FormData(e.target);
+
+  const res = await fetch(`/editarProducto/${id}`, {
+    method: "POST",
+    body: formData
+  });
+  const data = await res.json();
+
+  if(data.ok){
+    alert("Producto actualizado correctamente");
+    bootstrap.Modal.getInstance(document.getElementById('modalEditar')).hide();
+    cargarProductos();
+  } else {
+    alert("No se pudo actualizar el producto");
+  }
+});
+
+cargarProductos();
+</script>
+</body>
+</html>
