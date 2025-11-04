@@ -10,6 +10,7 @@ import fs from 'fs';
 import path from 'path';
 import session from "express-session";
 import bcrypt from "bcrypt";
+import MySQLStore from 'express-mysql-session';
 
 dotenv.config(); // carga .env
 console.log("DB host loaded:", !!process.env.DB_HOST);
@@ -24,7 +25,9 @@ app.use(express.static("public"));
 
 // 3) Session (usa SECRET desde .env en producción)
 app.use(session({
-  secret: process.env.SESSION_SECRET || "cambiar_esto_en_produccion",
+  key: 'session_cookie_name', // nombre de la cookie
+  secret: process.env.SESSION_SECRET || 'cambiar_esto_en_produccion',
+  store: sessionStore,        // <--- aquí usamos MySQLStore
   resave: false,
   saveUninitialized: false,
   cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 día
@@ -42,6 +45,14 @@ const con = mysql.createConnection({
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT || 3306),
   // si la conexión remota requiere TLS o flags especiales, ahí los agregas
+});
+
+const sessionStore = new MySQLStore({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT || 3306)
 });
 
 // 6) Conectar y verificar
