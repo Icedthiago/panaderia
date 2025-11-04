@@ -91,35 +91,37 @@ app.post("/register", async (req, res) => {
     let { nombre, email, password, rol } = req.body;
     nombre = sanitizeInput(nombre);
     email = sanitizeInput(email);
-    rol = sanitizeInput(rol) || 'pendiente';
+    rol = sanitizeInput(rol) || 'cliente';
 
     if (!nombre || !email || !password) {
         return res.status(400).json({ error: "Todos los campos son obligatorios." });
     }
 
-   // Validar contraseña
-    const passError = validarPassword(newPassword);
+    // Validar contraseña
+    const passError = validarPassword(password);
     if (passError) return res.status(400).json({ error: passError });
 
     try {
+        // Revisar si el usuario ya existe
         const [rows] = await con.promise().query(
-            "SELECT id_usuario FROM usuario WHERE nombre = ? AND email = ?",
-            [nombre, email]
+            "SELECT id_usuario FROM usuario WHERE email = ?",
+            [email]
         );
-        if (rows.length === 0) {
-            return res.status(404).json({ error: "No se encontró usuario con esos datos." });
+        if (rows.length > 0) {
+            return res.status(400).json({ error: "Email ya registrado." });
         }
 
-        const hashed = await bcrypt.hash(newPassword, 10);
+        // Crear hash y guardar usuario
+        const hashed = await bcrypt.hash(password, 10);
         await con.promise().query(
-            "UPDATE usuario SET password = ? WHERE id_usuario = ?",
-            [hashed, rows[0].id_usuario]
+            "INSERT INTO usuario (nombre, email, password, rol) VALUES (?, ?, ?, ?)",
+            [nombre, email, hashed, rol]
         );
 
-        return res.json({ mensaje: "Contraseña actualizada correctamente." });
+        return res.json({ mensaje: "Usuario registrado correctamente." });
     } catch (err) {
         console.error(err);
-        return res.status(500).json({ error: "Error al restablecer contraseña." });
+        return res.status(500).json({ error: "Error al registrar usuario." });
     }
 });
 
@@ -130,8 +132,11 @@ app.post("/login", async (req, res) => {
   if (!email || !password) return res.status(400).json({ error: "Email y contraseña son obligatorios." });
 
   try {
-    const [rows] = await con.promise().query("SELECT * FROM usuario");
-    if (rows.length === 0) return res.status(400).json({ error: "Credenciales inválidas." });
+    const [rows] = await con.promise().query(
+  "SELECT * FROM usuario WHERE email = ?",
+  [email]
+);
+if (rows.length === 0) return res.status(400).json({ error: "Credenciales inválidas." });
 
     const user = rows[0];
     const stored = user.password || '';
