@@ -17,10 +17,6 @@ console.log("DB host loaded:", !!process.env.DB_HOST);
 // 1) Crear app antes de usarla
 const app = express();
 
-const cors = require('cors');
-app.use(cors());
-
-
 // 2) Middlewares básicos
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
