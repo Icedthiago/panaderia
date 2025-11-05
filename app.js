@@ -17,6 +17,8 @@ console.log("DB host loaded:", !!process.env.DB_HOST);
 
 // 1) Crear app antes de usarla
 const app = express();
+const sessionStore = new MySQLStore({}, con);
+
 
 // 2) Middlewares básicos
 app.use(bodyParser.json());
@@ -25,11 +27,18 @@ app.use(express.static("public"));
 
 // 3) Session (usa SECRET desde .env en producción)
 app.use(session({
-  secret: process.env.SESSION_SECRET || "cambiar_esto_en_produccion",
+  key: 'session_cookie_name',
+  secret: process.env.SESSION_SECRET || 'cambiar_esto_en_produccion',
+  store: sessionStore,  // 👈 Aquí está el cambio importante
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 día
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 24, // 1 día
+    sameSite: 'lax',
+    secure: false // cámbialo a true si usas HTTPS en Render
+  }
 }));
+
 
 // 4) Multer (configuración simple; si quieres memoryStorage ajusta aquí)
 const storage = multer.memoryStorage(); // guarda en memoria (usa diskStorage si prefieres archivos)
@@ -42,7 +51,6 @@ const con = mysql.createConnection({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT || 3306),
-  // si la conexión remota requiere TLS o flags especiales, ahí los agregas
 });
 
 // 6) Conectar y verificar
