@@ -9,16 +9,13 @@ import multer from "multer";
 import fs from 'fs';
 import path from 'path';
 import session from "express-session";
-import bcrypt from "bcrypt";
-import MySQLStore from 'express-mysql-session';
+import bcrypt from "bcrypt"; 
 
 dotenv.config(); // carga .env
 console.log("DB host loaded:", !!process.env.DB_HOST);
 
 // 1) Crear app antes de usarla
 const app = express();
-const sessionStore = new MySQLStore({}, con);
-
 
 // 2) Middlewares básicos
 app.use(bodyParser.json());
@@ -51,6 +48,7 @@ const con = mysql.createConnection({
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT || 3306),
+  // si la conexión remota requiere TLS o flags especiales, ahí los agregas
 });
 
 // 6) Conectar y verificar
