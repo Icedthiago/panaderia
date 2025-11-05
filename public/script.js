@@ -421,8 +421,33 @@ async function actualizarBadge() {
 async function doCheckout() {
   if (!currentUser) return showToast('Debes iniciar sesión', 'warning');
   try {
-    const resp = await fetchJson('/carrito/checkout', { method: 'POST' });
-    if (resp.error) showToast(resp.error, 'error'); else { showToast('Compra realizada', 'success'); cargarCarrito(); actualizarBadge(); }
+    // Primero obtener los items del carrito
+    const carritoResp = await fetchJson('/carrito');
+    if (!carritoResp.items || carritoResp.items.length === 0) {
+      showToast('El carrito está vacío', 'warning');
+      return;
+    }
+
+    // Enviar items al checkout
+    const resp = await fetchJson('/carrito/checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ items: carritoResp.items })
+    });
+
+    if (resp.error) {
+      showToast(resp.error, 'error');
+    } else {
+      showToast('¡Compra realizada con éxito!', 'success');
+      await cargarCarrito();
+      actualizarBadge();
+      // Cerrar modal después de compra exitosa
+      const modalCarrito = document.getElementById('modalCarrito');
+      if (modalCarrito) {
+        const bsModal = bootstrap.Modal.getInstance(modalCarrito);
+        if (bsModal) bsModal.hide();
+      }
+    }
   } catch (err) {
     console.error('doCheckout error:', err.message);
     showToast('Error al procesar la compra: ' + err.message, 'error');

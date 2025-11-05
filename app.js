@@ -451,56 +451,107 @@ app.post("/carrito/eliminar", async (req, res) => {
 // Checkout: descontar stock, guardar venta y vaciar carrito
 app.post("/carrito/checkout", async (req, res) => {
   if (!req.session.user) {
-    return res.status(401).json({ error: "No autenticado." });
+    return res.status(401).json({ error: 'No autenticado' });
   }
 
   const id_usuario = req.session.user.id_usuario;
-    // Aceptamos ambos nombres en el body para compatibilidad: { carrito: [...] } o { items: [...] }
-    const items = req.body.carrito || req.body.items || [];
+  let conn;
+
+  try {
+    conn = await con.promise();
+    await conn.beginTransaction();
+
+    // Si no se enviaron items en el body, obtenerlos del carrito
+    let items = req.body.items || [];
+    if (items.length === 0) {
+      const [carritoRows] = await conn.query(
+        `SELECT c.*, p.nombre, p.precio FROM carrito c 
+         JOIN producto p ON c.id_producto = p.id_producto 
+         WHERE c.id_usuario = ?`,
+        [id_usuario]
+      );
+      items = carritoRows;
+    }
+
     if (!Array.isArray(items) || items.length === 0) {
-        return res.status(400).json({ error: "Carrito vacío." });
+      await conn.rollback();
+      return res.status(400).json({ error: 'Carrito vacío' });
     }
 
-    const conn = con.promise();
-    try {
-        await conn.beginTransaction();
+    // 1. Verificar stock suficiente y validar items
+    for (const item of items) {
+      if (!item.id_producto || !item.cantidad) {
+        await conn.rollback();
+        return res.status(400).json({ error: 'Item inválido en carrito' });
+      }
 
-        // Crear la venta
-        const [ventaRes] = await conn.query("INSERT INTO venta (id_usuario) VALUES (?)", [id_usuario]);
-        const id_venta = ventaRes.insertId;
-
-        // Insertar los productos del carrito, actualizar stock y eliminar del carrito
-        for (const item of items) {
-            // validar estructura mínima
-            if (!item.id_producto || !item.cantidad) {
-                throw new Error('Item inválido en carrito');
-            }
-
-            const precio = Number(item.precio) || 0;
-            const cantidad = Number(item.cantidad);
-
-            await conn.query(
-  "INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio) VALUES (?, ?, ?, ?)",
-  [id_venta, item.id_producto, cantidad, precio]
-);
-
-
-            await conn.query(
-                "UPDATE producto SET stock = stock - ? WHERE id_producto = ?",
-                [cantidad, item.id_producto]
-            );
-
-            // quitar del carrito del usuario
-            await conn.query("DELETE FROM carrito WHERE id_usuario = ? AND id_producto = ?", [id_usuario, item.id_producto]);
-        }
-
-        await conn.commit();
-        return res.json({ mensaje: "Venta completada con éxito" });
-    } catch (err) {
-        try { await conn.rollback(); } catch (e) { console.error('Rollback failed', e); }
-        console.error("Error en checkout:", err);
-        return res.status(500).json({ error: "Error al procesar la venta" });
+      const [stockRows] = await conn.query(
+        'SELECT stock FROM producto WHERE id_producto = ?',
+        [item.id_producto]
+      );
+      
+      if (!stockRows.length || stockRows[0].stock < item.cantidad) {
+        await conn.rollback();
+        return res.status(400).json({
+          error: `Stock insuficiente para el producto ${item.nombre || item.id_producto}`
+        });
+      }
     }
+
+    // 2. Crear venta
+    const [ventaResult] = await conn.query(
+      'INSERT INTO venta (id_usuario, fecha, total) VALUES (?, NOW(), 0)',
+      [id_usuario]
+    );
+    const id_venta = ventaResult.insertId;
+
+    // 3. Insertar detalles y actualizar stock
+    let total = 0;
+    for (const item of items) {
+      const precio = Number(item.precio) || 0;
+      const cantidad = Number(item.cantidad);
+      const subtotal = precio * cantidad;
+
+      // Insertar detalle
+      await conn.query(
+        'INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio, subtotal) VALUES (?, ?, ?, ?, ?)',
+        [id_venta, item.id_producto, cantidad, precio, subtotal]
+      );
+
+      // Actualizar stock
+      await conn.query(
+        'UPDATE producto SET stock = stock - ? WHERE id_producto = ?',
+        [cantidad, item.id_producto]
+      );
+
+      total += subtotal;
+    }
+
+    // 4. Actualizar total en venta
+    await conn.query(
+      'UPDATE venta SET total = ? WHERE id_venta = ?',
+      [total, id_venta]
+    );
+
+    // 5. Vaciar carrito del usuario
+    await conn.query(
+      'DELETE FROM carrito WHERE id_usuario = ?',
+      [id_usuario]
+    );
+
+    // 6. Confirmar transacción
+    await conn.commit();
+    res.json({ 
+      message: 'Compra realizada con éxito',
+      id_venta,
+      total 
+    });
+
+  } catch (err) {
+    console.error('Error en checkout:', err);
+    if (conn) await conn.rollback();
+    res.status(500).json({ error: 'Error al procesar la compra' });
+  }
 });
 
     // Obtener historial de compras del usuario (con detalles)
