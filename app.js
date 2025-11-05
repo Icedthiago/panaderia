@@ -9,7 +9,7 @@ import multer from "multer";
 import fs from 'fs';
 import path from 'path';
 import session from "express-session";
-import bcrypt from "bcrypt"; 
+import bcrypt from "bcrypt";
 
 dotenv.config(); // carga .env
 console.log("DB host loaded:", !!process.env.DB_HOST);
@@ -24,18 +24,11 @@ app.use(express.static("public"));
 
 // 3) Session (usa SECRET desde .env en producción)
 app.use(session({
-  key: 'session_cookie_name',
-  secret: process.env.SESSION_SECRET || 'cambiar_esto_en_produccion',
-  store: sessionStore,  // 👈 Aquí está el cambio importante
+  secret: process.env.SESSION_SECRET || "cambiar_esto_en_produccion",
   resave: false,
   saveUninitialized: false,
-  cookie: {
-    maxAge: 1000 * 60 * 60 * 24, // 1 día
-    sameSite: 'lax',
-    secure: false // cámbialo a true si usas HTTPS en Render
-  }
+  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 día
 }));
-
 
 // 4) Multer (configuración simple; si quieres memoryStorage ajusta aquí)
 const storage = multer.memoryStorage(); // guarda en memoria (usa diskStorage si prefieres archivos)
