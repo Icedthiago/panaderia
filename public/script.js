@@ -348,8 +348,87 @@ async function cargarProductos() {
   // If it's a table body (tbody), render rows. If it's a div, render cards.
   const isTbody = tablaEl.tagName.toLowerCase() === 'tbody' || tablaEl.tagName.toLowerCase() === 'table';
   if (isTbody) tablaEl.innerHTML = '';
+  
+  // Recorrer productos y mostrar en tabla o grid
   productos.forEach((prod, idx) => {
-  const imgSrc = (prod.imagenBase64 && prod.tipoMime) ? `data:${prod.tipoMime};base64,${prod.imagenBase64}` : (prod.tieneImagen ? `/imagen/${prod.id_producto}` : 'https://via.placeholder.com/150?text=Sin+Imagen');
+    // Determinar la fuente de la imagen con manejo de errores
+    let imgSrc;
+    try {
+      if (prod.imagenBase64 && prod.tipoMime) {
+        imgSrc = `data:${prod.tipoMime};base64,${prod.imagenBase64}`;
+      } else if (prod.tieneImagen) {
+        imgSrc = `/imagen/${prod.id_producto}`;
+      } else {
+        imgSrc = 'https://via.placeholder.com/150?text=Sin+Imagen';
+      }
+    } catch (err) {
+      console.error('Error procesando imagen del producto:', err);
+      imgSrc = 'https://via.placeholder.com/150?text=Error+Imagen';
+    }
+
+    // Preparar acciones según rol
+    let acciones = '';
+    if (currentUser?.rol === 'admin') {
+      acciones = `
+        <button class="btn btn-sm btn-warning me-1 btn-editar" data-prod='${JSON.stringify(prod).replace(/'/g, "&#39;")}'>
+          <i class="bi bi-pencil"></i> Editar
+        </button>
+        <button class="btn btn-sm btn-danger btn-borrar" data-id="${prod.id_producto}">
+          <i class="bi bi-trash"></i> Borrar
+        </button>`;
+    } else {
+      acciones = `
+        <button class="btn btn-sm btn-primary btn-agregar" data-id="${prod.id_producto}" ${prod.stock <= 0 ? 'disabled' : ''}>
+          <i class="bi bi-cart-plus"></i> Agregar
+        </button>`;
+    }
+
+    if (isTbody) {
+      // Renderizar fila de tabla
+      tablaEl.innerHTML += `
+        <tr>
+          <td>${idx + 1}</td>
+          <td>
+            <img src="${imgSrc}" 
+                class="img-thumbnail" 
+                style="width:80px;height:80px;object-fit:cover;"
+                onerror="this.src='https://via.placeholder.com/80?text=Error'">
+          </td>
+          <td>${escapeHtml(prod.nombre)}</td>
+          <td>${escapeHtml(prod.temporada || '')}</td>
+          <td class="fw-semibold text-success">$${Number(prod.precio).toFixed(2)}</td>
+          <td>${prod.stock}</td>
+          <td>${acciones}</td>
+        </tr>`;
+    } else {
+      // Renderizar tarjeta para grid
+      tablaEl.insertAdjacentHTML('beforeend', `
+        <div class="col-md-4">
+          <div class="card shadow-sm mb-3">
+            <img src="${imgSrc}" 
+                class="card-img-top" 
+                style="height:200px;object-fit:cover;"
+                onerror="this.src='https://via.placeholder.com/200?text=Error'">
+            <div class="card-body">
+              <h5 class="card-title">${escapeHtml(prod.nombre)}</h5>
+              <p class="card-text">${escapeHtml(prod.descripcion || '')}</p>
+              <div class="d-flex justify-content-between align-items-center">
+                <small class="text-muted">$${Number(prod.precio).toFixed(2)}</small>
+                ${acciones}
+              </div>
+            </div>
+          </div>
+        </div>`);
+    }
+  });
+
+  // Agregar event listeners para los botones
+  tablaEl.querySelectorAll('.btn-editar').forEach(btn => 
+    btn.addEventListener('click', () => editarProducto(btn.dataset.prod)));
+  tablaEl.querySelectorAll('.btn-borrar').forEach(btn => 
+    btn.addEventListener('click', () => borrarProducto(btn.dataset.id)));
+  tablaEl.querySelectorAll('.btn-agregar').forEach(btn => 
+    btn.addEventListener('click', () => agregarAlCarrito(btn.dataset.id)));
     let acciones = '';
     if (currentUser?.rol === 'admin') {
       acciones = `<button class="btn btn-sm btn-warning me-1 btn-editar" data-prod='${JSON.stringify(prod).replace(/'/g, "&#39;")}'>Editar</button>
@@ -387,13 +466,12 @@ async function cargarProductos() {
         </div>
       `);
     }
-  });
+  };
 
   // Delegación de eventos botones
   tablaEl.querySelectorAll('.btn-editar').forEach(btn => btn.addEventListener('click', () => editarProducto(btn.dataset.prod)));
   tablaEl.querySelectorAll('.btn-borrar').forEach(btn => btn.addEventListener('click', () => borrarProducto(btn.dataset.id)));
   tablaEl.querySelectorAll('.btn-agregar').forEach(btn => btn.addEventListener('click', () => agregarAlCarrito(btn.dataset.id)));
-}
 
 // ---------- Carrito ----------
 async function agregarAlCarrito(id_producto) {

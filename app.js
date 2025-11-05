@@ -390,15 +390,47 @@ app.post("/productos/editar/:id", upload.single("imagen"), (req, res) => {
 });
 
 // Servir imagen
-app.get("/imagen/:id_producto", (req, res) => {
+app.get("/imagen/:id_producto", async (req, res) => {
     const { id_producto } = req.params;
-    con.query("SELECT imagen FROM producto WHERE id_producto = ?", [id_producto], (err, results) => {
-        if (err || results.length === 0 || !results[0].imagen) {
+    try {
+        const [results] = await con.promise().query(
+            "SELECT imagen, nombre FROM producto WHERE id_producto = ?", 
+            [id_producto]
+        );
+
+        if (!results || results.length === 0 || !results[0].imagen) {
+            console.log(`Imagen no encontrada para producto ${id_producto}`);
             return res.status(404).send("Imagen no encontrada");
         }
-        res.set("Content-Type", "image/jpeg");
-        res.send(results[0].imagen);
-    });
+
+        // Detectar el tipo MIME basado en los bytes iniciales
+        const imagen = results[0].imagen;
+        let contentType = 'application/octet-stream';
+        
+        if (imagen.length > 2) {
+            const header = imagen.slice(0, 4);
+            const signature = header.toString('hex').toLowerCase();
+            
+            if (signature.startsWith('ffd8')) {
+                contentType = 'image/jpeg';
+            } else if (signature.startsWith('89504e47')) {
+                contentType = 'image/png';
+            } else if (signature.startsWith('47494638')) {
+                contentType = 'image/gif';
+            }
+        }
+
+        res.set({
+            'Content-Type': contentType,
+            'Content-Length': imagen.length,
+            'Cache-Control': 'public, max-age=86400' // Cache por 24 horas
+        });
+
+        res.send(imagen);
+    } catch (err) {
+        console.error(`Error sirviendo imagen ${id_producto}:`, err);
+        res.status(500).send("Error al cargar la imagen");
+    }
 });
 
 // eliminar producto (DELETE fetch desde frontend)
