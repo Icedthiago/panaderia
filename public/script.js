@@ -734,21 +734,29 @@ async function borrarProducto(id) {
 function togglePasswordVisibility(inputId, toggleBtnId) {
   const passwordInput = document.getElementById(inputId);
   const toggleBtn = document.getElementById(toggleBtnId);
+
+  // Guardas defensivamente si no existen los elementos
+  if (!passwordInput || !toggleBtn) {
+    // opcional: console.warn para debug
+    console.warn(`togglePasswordVisibility: elemento no encontrado: ${inputId} o ${toggleBtnId}`);
+    return;
+  }
+
   const icon = toggleBtn.querySelector('i');
 
-  toggleBtn.addEventListener('click', () => {
-    if (passwordInput.type === 'password') {
-      passwordInput.type = 'text';
-      icon.classList.remove('bi-eye');
-      icon.classList.add('bi-eye-slash');
-    } else {
-      passwordInput.type = 'password';
-      icon.classList.remove('bi-eye-slash');
-      icon.classList.add('bi-eye');
+  toggleBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const isPassword = passwordInput.type === 'password';
+    passwordInput.type = isPassword ? 'text' : 'password';
+
+    if (icon) {
+      // Actualiza icono según estado
+      icon.classList.toggle('bi-eye', !isPassword);
+      icon.classList.toggle('bi-eye-slash', isPassword);
     }
   });
 }
 
 // Aplicar a ambos formularios
 togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
-togglePasswordVisibility('registerPassword', 'toggleRegisterPassword');
+togglePasswordVisibility('regPassword', 'toggleRegisterPassword');
