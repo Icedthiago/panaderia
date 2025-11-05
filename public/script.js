@@ -4,51 +4,7 @@ let badgeCarrito = null;
 
 // ---------- Helper para fetch con cookies ----------
 // Wrapper seguro para fetch que añade credentials para rutas internas y hace logging útil
-(() => {
-  if (typeof window === 'undefined' || !window.fetch) return;
 
-  const _fetch = window.fetch.bind(window);
-
-  window.fetch = async function(resource, init = {}) {
-    // Normalize resource to string for la comprobación de URL
-    let urlString = '';
-    try {
-      urlString = typeof resource === 'string' ? resource : (resource && resource.url) || '';
-    } catch (e) {
-      console.warn('fetch wrapper: no se pudo obtener urlString', e);
-      urlString = '';
-    }
-
-    // Sólo añadir credentials para nuestras rutas internas (ajusta si necesitas más)
-    const shouldAttachCredentials = urlString === '/me' ||
-                                    urlString === '/misCompras' ||
-                                    urlString.startsWith('/carrito') ||
-                                    urlString.startsWith('/usuarios');
-
-    // Crear un nuevo objeto init para no mutar el original
-    const mergedInit = Object.assign({}, init);
-    if (shouldAttachCredentials) {
-      mergedInit.credentials = mergedInit.credentials || 'same-origin';
-    }
-
-    // Debugging: log cuando falle la petición para ayudar a identificar el problema
-    try {
-      return await _fetch(resource, mergedInit);
-    } catch (err) {
-      // Lanzamos error con más contexto
-      const msg = [
-        'fetch failed',
-        `resource: ${urlString || String(resource)}`,
-        `method: ${mergedInit.method || 'GET'}`,
-        `credentials: ${mergedInit.credentials || 'none'}`,
-        `error: ${err && err.message ? err.message : String(err)}`
-      ].join(' | ');
-      console.error(msg, err);
-      // Re-lanzar para que el resto de tu código lo maneje (o lo veas en consola)
-      throw new Error(msg);
-    }
-  };
-})();
 
 
 // Helper seguro para parsear JSON y mostrar el body cuando no sea JSON (evita 'Unexpected token <')
@@ -68,14 +24,40 @@ async function fetchJson(url, options) {
 }
 
 // ---------- DOMContentLoaded ----------
-document.addEventListener('DOMContentLoaded', () => {
-  // Elementos auth
+document.addEventListener('DOMContentLoaded', async () => {
   const formRegister = document.getElementById('formRegister');
   const formLogin = document.getElementById('formLogin');
   const authOverlay = document.getElementById('authOverlay');
-  const mainApp = document.getElementById('mainApp');
+  const mainApp = document.getElementById('mainApp'); // puede ser null si no está en HTML
   const btnAgregarPan = document.getElementById('btnAgregarPan');
   badgeCarrito = document.getElementById('badgeCarrito');
+
+  // listeners defensivos
+  document.getElementById('switchToLogin')?.addEventListener('click', e => { e.preventDefault(); showLogin(); });
+  document.getElementById('switchToRegister')?.addEventListener('click', e => { e.preventDefault(); showRegister(); });
+
+  if (formRegister) formRegister.addEventListener('submit', handleRegister);
+  if (formLogin) formLogin.addEventListener('submit', handleLogin);
+  document.getElementById('logoutBtn')?.addEventListener('click', handleLogout);
+
+  // inicializar sesión (ejemplo simplificado)
+  try {
+    const res = await fetch('/me');
+    if (res.ok) {
+      const data = await res.json();
+      if (data.user) onLogin(data.user);
+      else { showRegister(); cargarProductos(); }
+    } else {
+      showRegister();
+      cargarProductos();
+    }
+  } catch (err) {
+    console.warn('No se pudo obtener /me:', err?.message || err);
+    showRegister();
+    cargarProductos();
+  }
+});
+
   
   // Switch login/register
   document.getElementById('switchToLogin').addEventListener('click', e => { e.preventDefault(); showLogin(); });
@@ -110,7 +92,6 @@ document.addEventListener('DOMContentLoaded', () => {
   } catch (err) {
     console.warn('No se pudo obtener /me:', err?.message || err);
   }
-});
 
   // Otros botones globales
   document.getElementById('btnCheckout')?.addEventListener('click', doCheckout);
@@ -170,7 +151,7 @@ document.addEventListener('DOMContentLoaded', () => {
       modalEditar.show();
     }
   });
-});
+});   
 
 // ---------- Funciones Auth ----------
 function showLogin() {
@@ -185,7 +166,7 @@ function showLogin() {
   if (formLogin) formLogin.classList.remove('d-none');
   if (authError) authError.classList.add('d-none');
   if (loginError) loginError.classList.add('d-none');
-}
+} 
 function showRegister() {
   document.getElementById('authTitle').textContent = 'Crear cuenta';
   document.getElementById('formRegister').classList.remove('d-none');
@@ -788,6 +769,89 @@ function togglePasswordVisibility(inputId, toggleBtnId) {
     }
   });
 }
+
+const API_URL = "https://panaderia-w16t.onrender.com"; // cambia si tu dominio es distinto
+
+document.getElementById('formRegister')?.addEventListener('submit', async (e) => {
+  e.preventDefault();
+
+  const nombre = document.getElementById('regNombre').value.trim();
+  const email = document.getElementById('regEmail').value.trim();
+  const password = document.getElementById('regPassword').value;
+
+  if (!nombre || !email || !password) {
+    alert("⚠️ Completa todos los campos");
+    return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, email, password }),
+    });
+
+    const data = await res.json();
+
+    if (res.ok) {
+      alert('✅ Registro exitoso, ahora puedes iniciar sesión');
+      document.getElementById('formRegister').reset();
+    } else {
+      alert(`❌ ${data.message || 'Error al registrar'}`);
+    }
+
+  } catch (err) {
+    console.error('❌ Error de red o servidor:', err);
+    alert('❌ No se pudo conectar con el servidor');
+  }
+});
+
+(() => {
+  if (typeof window === 'undefined' || !window.fetch) return;
+
+  const _fetch = window.fetch.bind(window);
+
+  window.fetch = async function(resource, init = {}) {
+    // Normalize resource to string for la comprobación de URL
+    let urlString = '';
+    try {
+      urlString = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+    } catch (e) {
+      console.warn('fetch wrapper: no se pudo obtener urlString', e);
+      urlString = '';
+    }
+
+    // Sólo añadir credentials para nuestras rutas internas (ajusta si necesitas más)
+    const shouldAttachCredentials = urlString === '/me' ||
+                                    urlString === '/misCompras' ||
+                                    urlString.startsWith('/carrito') ||
+                                    urlString.startsWith('/usuarios');
+
+    // Crear un nuevo objeto init para no mutar el original
+    const mergedInit = Object.assign({}, init);
+    if (shouldAttachCredentials) {
+      mergedInit.credentials = mergedInit.credentials || 'same-origin';
+    }
+
+    // Debugging: log cuando falle la petición para ayudar a identificar el problema
+    try {
+      return await _fetch(resource, mergedInit);
+    } catch (err) {
+      // Lanzamos error con más contexto
+      const msg = [
+        'fetch failed',
+        `resource: ${urlString || String(resource)}`,
+        `method: ${mergedInit.method || 'GET'}`,
+        `credentials: ${mergedInit.credentials || 'none'}`,
+        `error: ${err && err.message ? err.message : String(err)}`
+      ].join(' | ');
+      console.error(msg, err);
+      // Re-lanzar para que el resto de tu código lo maneje (o lo veas en consola)
+      throw new Error(msg);
+    }
+  };
+})();
+
 
 // Aplicar a ambos formularios
 togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
