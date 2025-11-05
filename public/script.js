@@ -101,18 +101,16 @@ document.addEventListener('DOMContentLoaded', () => {
   });
 
   // Inicializar sesión
-  fetchJson('/me').then(data => {
-    if (data && data.user) onLogin(data.user);
-    else { showRegister(); cargarProductos(); }
-    cargarGaleria?.();
-    actualizarBadge();
-  }).catch(err => {
-    console.warn('No se pudo obtener /me:', err.message);
-    // fallback: mostrar registro y cargar productos de todos modos
-    showRegister();
-    cargarProductos();
-    actualizarBadge();
-  });
+  document.addEventListener('DOMContentLoaded', async () => {
+  try {
+    const res = await fetch('/me');
+    if (!res.ok) throw new Error('No se pudo obtener el usuario');
+    const user = await res.json();
+    console.log('Usuario:', user);
+  } catch (err) {
+    console.warn('No se pudo obtener /me:', err?.message || err);
+  }
+});
 
   // Otros botones globales
   document.getElementById('btnCheckout')?.addEventListener('click', doCheckout);
