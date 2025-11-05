@@ -854,5 +854,8 @@ document.getElementById('formRegister')?.addEventListener('submit', async (e) =>
 
 
 // Aplicar a ambos formularios
-togglePasswordVisibility('logPassword', 'toggleLogPassword');
+// Wire common possible toggle/id combinations (covers pages that use different ids)
+togglePasswordVisibility('regPassword', 'toggleRegisterPassword');
 togglePasswordVisibility('regPassword', 'toggleRegPassword');
+togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
+togglePasswordVisibility('logPassword', 'toggleLogPassword');
