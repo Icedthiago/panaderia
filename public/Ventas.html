@@ -251,22 +251,20 @@
   const btnVaciar = document.getElementById('btnVaciarCarrito');
   const btnFinalizar = document.getElementById('btnFinalizarCompra');
   const modalCarrito = new bootstrap.Modal(document.getElementById('modalCarrito'));
-  
+  const tbody = document.querySelector('#tablaProductos');
   let carrito = [];
 
-  // 🔹 Abrir modal al hacer clic en carrito
+  // 🛒 Abrir modal
   btnCarrito.addEventListener('click', () => modalCarrito.show());
 
   function esc(s) {
     return String(s || '').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
   }
 
-  // 🔹 Calcular total
   function calcularTotal() {
     return carrito.reduce((acc, item) => acc + item.precio * item.cantidad, 0);
   }
 
-  // 🔹 Renderizar carrito
   function renderizarCarrito() {
     badgeCarrito.textContent = carrito.length;
     tablaCarrito.innerHTML = '';
@@ -299,7 +297,7 @@
     totalCarrito.textContent = calcularTotal().toFixed(2);
   }
 
-  // 🔹 Eventos de botones dentro del carrito
+  // 🧮 Botones de cantidad
   tablaCarrito.addEventListener('click', e => {
     const btn = e.target.closest('button');
     if (!btn) return;
@@ -318,56 +316,51 @@
     renderizarCarrito();
   });
 
-  // 🔹 Vaciar carrito
+  // 🗑️ Vaciar carrito
   btnVaciar.addEventListener('click', () => {
     carrito = [];
     renderizarCarrito();
   });
 
-btnFinalizar.addEventListener('click', async () => {
-  if (carrito.length === 0) return alert('Carrito vacío 🛒');
+  // 💳 Finalizar compra
+  btnFinalizar.addEventListener('click', async () => {
+    if (carrito.length === 0) return alert('Carrito vacío 🛒');
 
-  try {
-    const res = await fetch('/carrito/checkout', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include', // 👈 MUY IMPORTANTE
-      body: JSON.stringify({ items: carrito })
-    });
+    try {
+      const res = await fetch('/carrito/checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include', // 👈 necesario para sesión
+        body: JSON.stringify({ items: carrito })
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    if (data.error) {
-      alert(`❌ Error: ${data.error}`);
-      return;
+      if (data.error) {
+        alert(`❌ Error: ${data.error}`);
+        return;
+      }
+
+      alert('✅ Compra finalizada correctamente 🧾');
+      carrito = [];
+      renderizarCarrito();
+      modalCarrito.hide();
+    } catch (err) {
+      console.error(err);
+      alert('Error al procesar la compra.');
     }
+  });
 
-    alert('✅ Compra finalizada correctamente 🧾');
-    carrito = [];
-    renderizarCarrito();
-    modalCarrito.hide();
-  } catch (err) {
-    console.error(err);
-    alert('Error al procesar la compra.');
-  }
-});
-
-
-
-  // 🔹 Cargar productos desde backend
-  fetch('/obtenerProductos')
-    .then(r => r.json())
+  // 📦 Cargar productos desde backend (con sesión)
+  fetch('/obtenerProductos', { credentials: 'include' })
+    .then(r => {
+      if (!r.ok) throw new Error('Error HTTP ' + r.status);
+      return r.json();
+    })
     .then(productos => {
-      const tbody = document.querySelector('#tablaProductos');
-      if (!tbody) return;
       tbody.innerHTML = '';
-
       productos.forEach((prod, idx) => {
         const imgSrc = prod.imagen ? `/imagen/${prod.id_producto}` : 'https://via.placeholder.com/80?text=Sin+Imagen';
-        const acciones = `<button class="btn btn-sm btn-warning me-1 btnAgregarCarrito"
-                              data-id="${prod.id_producto}" data-nombre="${esc(prod.nombre)}"
-                              data-precio="${prod.precio}" data-stock="${prod.stock}"
-                              data-img="${imgSrc}">🛒 Agregar</button>`;
         tbody.insertAdjacentHTML('beforeend', `
           <tr>
             <td>${idx+1}</td>
@@ -376,14 +369,23 @@ btnFinalizar.addEventListener('click', async () => {
             <td>${esc(prod.descripcion || '')}</td>
             <td class="fw-semibold text-success">$${Number(prod.precio).toFixed(2)}</td>
             <td>${Number(prod.stock)}</td>
-            <td>${acciones}</td>
+            <td>
+              <button class="btn btn-sm btn-warning me-1 btnAgregarCarrito"
+                data-id="${prod.id_producto}"
+                data-nombre="${esc(prod.nombre)}"
+                data-precio="${prod.precio}"
+                data-stock="${prod.stock}"
+                data-img="${imgSrc}">
+                🛒 Agregar
+              </button>
+            </td>
           </tr>
         `);
       });
 
-      // 🔹 Botón Agregar al carrito
+      // 🎯 Botones agregar al carrito
       document.querySelectorAll('.btnAgregarCarrito').forEach(btn => {
-        btn.addEventListener('click', e => {
+        btn.addEventListener('click', () => {
           const data = btn.dataset;
           const existente = carrito.find(item => item.id_producto == data.id);
 
@@ -407,7 +409,5 @@ btnFinalizar.addEventListener('click', async () => {
     .catch(err => console.error('Error cargando productos:', err));
 })();
 </script>
-
-
 </body>
 </html>
