@@ -3,19 +3,53 @@ let currentUser = null;
 let badgeCarrito = null;
 
 // ---------- Helper para fetch con cookies ----------
+// Wrapper seguro para fetch que añade credentials para rutas internas y hace logging útil
 (() => {
   if (typeof window === 'undefined' || !window.fetch) return;
+
   const _fetch = window.fetch.bind(window);
-  window.fetch = (resource, init = {}) => {
+
+  window.fetch = async function(resource, init = {}) {
+    // Normalize resource to string for la comprobación de URL
+    let urlString = '';
     try {
-      const url = typeof resource === 'string' ? resource : (resource && resource.url) || '';
-      if (url && (url === '/me' || url === '/misCompras' || url.startsWith('/carrito') || url.startsWith('/usuarios'))) {
-        init = Object.assign({ credentials: 'same-origin' }, init);
-      }
-    } catch (e) {}
-    return _fetch(resource, init);
+      urlString = typeof resource === 'string' ? resource : (resource && resource.url) || '';
+    } catch (e) {
+      console.warn('fetch wrapper: no se pudo obtener urlString', e);
+      urlString = '';
+    }
+
+    // Sólo añadir credentials para nuestras rutas internas (ajusta si necesitas más)
+    const shouldAttachCredentials = urlString === '/me' ||
+                                    urlString === '/misCompras' ||
+                                    urlString.startsWith('/carrito') ||
+                                    urlString.startsWith('/usuarios');
+
+    // Crear un nuevo objeto init para no mutar el original
+    const mergedInit = Object.assign({}, init);
+    if (shouldAttachCredentials) {
+      mergedInit.credentials = mergedInit.credentials || 'same-origin';
+    }
+
+    // Debugging: log cuando falle la petición para ayudar a identificar el problema
+    try {
+      return await _fetch(resource, mergedInit);
+    } catch (err) {
+      // Lanzamos error con más contexto
+      const msg = [
+        'fetch failed',
+        `resource: ${urlString || String(resource)}`,
+        `method: ${mergedInit.method || 'GET'}`,
+        `credentials: ${mergedInit.credentials || 'none'}`,
+        `error: ${err && err.message ? err.message : String(err)}`
+      ].join(' | ');
+      console.error(msg, err);
+      // Re-lanzar para que el resto de tu código lo maneje (o lo veas en consola)
+      throw new Error(msg);
+    }
   };
 })();
+
 
 // Helper seguro para parsear JSON y mostrar el body cuando no sea JSON (evita 'Unexpected token <')
 async function fetchJson(url, options) {
