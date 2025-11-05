@@ -854,5 +854,5 @@ document.getElementById('formRegister')?.addEventListener('submit', async (e) =>
 
 
 // Aplicar a ambos formularios
-togglePasswordVisibility('loginPassword', 'toggleLoginPassword');
-togglePasswordVisibility('regPassword', 'toggleRegisterPassword');
+togglePasswordVisibility('logPassword', 'toggleLogPassword');
+togglePasswordVisibility('regPassword', 'toggleRegPassword');
