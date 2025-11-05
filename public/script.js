@@ -92,7 +92,7 @@ document.addEventListener('DOMContentLoaded', () => {
   document.getElementById("formNuevoUsuario")?.addEventListener("submit", async e => {
     e.preventDefault();
     const nombre = document.getElementById("nuevoNombre").value.trim();
-    const email = document.getElementById("nuevoEmail").value.trim();
+    const email = document.getElementById('loginEmail').value.trim();
     const rol = document.getElementById("nuevoRol").value;
     if (!nombre || !email) return;
 
@@ -183,8 +183,8 @@ async function handleRegister(e) {
 
 async function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('logEmail').value.trim();
-  const password = document.getElementById('logPassword').value;
+  const email = document.getElementById('loginEmail').value.trim();
+  const password = document.getElementById('loginPassword').value;
   const resp = await fetch('/login', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
