@@ -157,42 +157,6 @@
   </div>
 </div>
 
-<!-- Modal Editar Perfil -->
-<div class="modal fade" id="modalEditarPerfil" tabindex="-1" aria-labelledby="modalEditarPerfilLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <form id="formEditarPerfil" enctype="multipart/form-data">
-        <div class="modal-header">
-          <h5 class="modal-title" id="modalEditarPerfilLabel">Editar perfil</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-        </div>
-        <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">Nombre</label>
-            <input id="editarNombrePerfil" name="nombre" class="form-control" required />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Nueva contraseña (opcional)</label>
-            <input id="editarPasswordPerfil" type="password" name="newPassword" class="form-control" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Confirmar contraseña</label>
-            <input id="editarPasswordConfirm" type="password" class="form-control" />
-          </div>
-          <div class="mb-3">
-            <label class="form-label">Foto de perfil (opcional)</label>
-            <input id="editarImagenPerfil" type="file" accept="image/*" class="form-control" name="imagenPerfil" />
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-          <button type="submit" class="btn btn-primary">Guardar</button>
-        </div>
-      </form>
-    </div>
-  </div>
-</div>
-
 <!-- Modal Gestionar Usuarios -->
 <div class="modal fade" id="modalUsuarios" tabindex="-1">
   <div class="modal-dialog modal-lg">
@@ -215,27 +179,6 @@
           <tbody id="usuariosTabla"></tbody>
         </table>
         <hr>
-        <h6 class="fw-bold mb-3">Agregar nuevo usuario</h6>
-        <form id="formNuevoUsuario" class="row g-2">
-          <div class="col-md-3">
-            <input type="text" id="nuevoNombre" class="form-control" placeholder="Nombre" required>
-          </div>
-          <div class="col-md-3">
-            <input type="email" id="nuevoEmail" class="form-control" placeholder="Email" required>
-          </div>
-          <div class="col-md-3">
-            <input type="password" id="nuevoPassword" class="form-control" placeholder="Contraseña" required>
-          </div>
-          <div class="col-md-2">
-            <select id="nuevoRol" class="form-select">
-              <option value="cliente">Cliente</option>
-              <option value="admin">Admin</option>
-            </select>
-          </div>
-          <div class="col-md-1">
-            <button class="btn btn-success w-100" type="submit">Añadir</button>
-          </div>
-        </form>
       </div>
     </div>
   </div>
