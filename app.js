@@ -111,10 +111,29 @@ app.post("/register", async (req, res) => {
 
         // Crear hash y guardar usuario
         const hashed = await bcrypt.hash(password, 10);
-        await con.promise().query(
+        const [result] = await con.promise().query(
             "INSERT INTO usuario (nombre, email, password, rol) VALUES (?, ?, ?, ?)",
             [nombre, email, hashed, rol]
         );
+
+        const [newUser] = await con.promise().query(
+            "SELECT id_usuario, nombre, email, rol FROM usuario WHERE id_usuario = ?",
+            [result.insertId]
+        );
+
+        if (newUser && newUser[0]) {
+            // Iniciar sesión automáticamente después del registro
+            req.session.user = {
+                id_usuario: newUser[0].id_usuario,
+                nombre: newUser[0].nombre,
+                email: newUser[0].email,
+                rol: newUser[0].rol
+            };
+            return res.json({ 
+                mensaje: "Usuario registrado correctamente.",
+                user: req.session.user 
+            });
+        }
 
         return res.json({ mensaje: "Usuario registrado correctamente." });
     } catch (err) {
@@ -127,41 +146,65 @@ app.post("/register", async (req, res) => {
 app.post("/login", async (req, res) => {
   let { email, password } = req.body;
   email = sanitizeInput(email);
-  if (!email || !password) return res.status(400).json({ error: "Email y contraseña son obligatorios." });
+  
+  if (!email || !password) {
+    return res.status(400).json({ error: "Email y contraseña son obligatorios." });
+  }
 
   try {
     const [rows] = await con.promise().query(
-  "SELECT * FROM usuario WHERE email = ?",
-  [email]
-);
-if (rows.length === 0) return res.status(400).json({ error: "Credenciales inválidas." });
+      "SELECT * FROM usuario WHERE email = ?",
+      [email]
+    );
+
+    if (rows.length === 0) {
+      return res.status(400).json({ error: "Credenciales inválidas." });
+    }
 
     const user = rows[0];
     const stored = user.password || '';
+    let isValidPassword = false;
 
-    // Si stored parece un hash bcrypt (empieza con $2a$ $2b$ o $2y$), usar bcrypt.compare
+    // Verificar contraseña
     if (/^\$2[aby]\$/.test(stored)) {
-      const ok = await bcrypt.compare(password, stored);
-      if (!ok) return res.status(400).json({ error: "Credenciales inválidas." });
+      // Contraseña está hasheada con bcrypt
+      isValidPassword = await bcrypt.compare(password, stored);
     } else {
-      // stored parece texto plano: comparar directamente
-      if (password !== stored) return res.status(400).json({ error: "Credenciales inválidas." });
-      // re-hashear y actualizar DB para seguridad
-      const newHash = await bcrypt.hash(password, 10);
-      await con.promise().query("UPDATE usuario SET password = ? WHERE id_usuario = ?", [newHash, user.id_usuario]);
-      console.log(`Usuario ${user.id_usuario} re-hasheado automáticamente.`);
+      // Contraseña en texto plano (legacy)
+      isValidPassword = password === stored;
+      if (isValidPassword) {
+        // Re-hashear para mayor seguridad
+        const newHash = await bcrypt.hash(password, 10);
+        await con.promise().query(
+          "UPDATE usuario SET password = ? WHERE id_usuario = ?",
+          [newHash, user.id_usuario]
+        );
+        console.log(`Usuario ${user.id_usuario} re-hasheado automáticamente.`);
+      }
     }
 
-    req.session.user = {
+    if (!isValidPassword) {
+      return res.status(400).json({ error: "Credenciales inválidas." });
+    }
+
+    // Crear sesión
+    const sessionUser = {
       id_usuario: user.id_usuario,
       nombre: user.nombre,
       email: user.email,
       rol: user.rol
     };
-    return res.json({ mensaje: "Login correcto.", user: req.session.user });
+
+    req.session.user = sessionUser;
+    
+    return res.json({ 
+      mensaje: "Login correcto.",
+      user: sessionUser
+    });
+
   } catch (err) {
-    console.error(err);
-    return res.status(500).json({ error: "Error en el login." });
+    console.error('Error en login:', err);
+    return res.status(500).json({ error: "Error en el servidor. Por favor intente más tarde." });
   }
 });
 

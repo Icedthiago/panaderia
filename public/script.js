@@ -175,42 +175,74 @@ function showRegister() {
 
 async function handleRegister(e) {
   e.preventDefault();
-  const nombre = document.getElementById('regNombre').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value;
-  const rol = document.getElementById('isAdmin')?.checked ? 'admin' : 'cliente';
-  const resp = await fetch('/register', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ nombre, email, password, rol })
-  }).then(r => r.json());
+  
+  try {
+    const nombre = document.getElementById('regNombre').value.trim();
+    const email = document.getElementById('regEmail').value.trim();
+    const password = document.getElementById('regPassword').value;
+    const rol = document.getElementById('isAdmin')?.checked ? 'admin' : 'cliente';
 
-  if (resp.error) {
-    const el = document.getElementById('authError');
-    el.textContent = resp.error;
-    el.classList.remove('d-none');
-    return;
+    if (!nombre || !email || !password) {
+      showToast('Todos los campos son obligatorios', 'warning');
+      return;
+    }
+
+    const resp = await fetchJson('/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ nombre, email, password, rol })
+    });
+
+    if (resp.error) {
+      const el = document.getElementById('authError');
+      el.textContent = resp.error;
+      el.classList.remove('d-none');
+      return;
+    }
+
+    if (resp.user) {
+      onLogin(resp.user);
+      showToast('¡Registro exitoso!', 'success');
+    }
+  } catch (err) {
+    console.error('Error en registro:', err);
+    showToast('Error al registrar. Por favor intente nuevamente.', 'error');
   }
-  onLogin(resp.user);
 }
 
 async function handleLogin(e) {
   e.preventDefault();
-  const email = document.getElementById('loginEmail').value.trim();
-  const password = document.getElementById('loginPassword').value;
-  const resp = await fetch('/login', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password })
-  }).then(r => r.json());
+  
+  try {
+    const email = document.getElementById('loginEmail').value.trim();
+    const password = document.getElementById('loginPassword').value;
 
-  if (resp.error) {
-    const el = document.getElementById('loginError');
-    el.textContent = resp.error;
-    el.classList.remove('d-none');
-    return;
+    if (!email || !password) {
+      showToast('Email y contraseña son obligatorios', 'warning');
+      return;
+    }
+
+    const resp = await fetchJson('/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password })
+    });
+
+    if (resp.error) {
+      const el = document.getElementById('loginError');
+      el.textContent = resp.error;
+      el.classList.remove('d-none');
+      return;
+    }
+
+    if (resp.user) {
+      onLogin(resp.user);
+      showToast('¡Bienvenido!', 'success');
+    }
+  } catch (err) {
+    console.error('Error en login:', err);
+    showToast('Error al iniciar sesión. Por favor intente nuevamente.', 'error');
   }
-  onLogin(resp.user);
 }
 
 async function handleLogout(e) {
