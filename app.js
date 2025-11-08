@@ -542,15 +542,16 @@ app.post("/carrito/checkout", async (req, res) => {
   let conn;
 
   try {
-    conn = await con.promise();
+    // Obtener conexión dedicada del pool para la transacción
+    conn = await con.promise().getConnection();
     await conn.beginTransaction();
 
     // Si no se enviaron items en el body, obtenerlos del carrito
     let items = req.body.items || [];
-    if (items.length === 0) {
+    if (!Array.isArray(items) || items.length === 0) {
       const [carritoRows] = await conn.query(
-        `SELECT c.*, p.nombre, p.precio FROM carrito c 
-         JOIN producto p ON c.id_producto = p.id_producto 
+        `SELECT c.id_carrito, c.cantidad, c.id_producto, p.nombre, p.precio 
+         FROM carrito c JOIN producto p ON c.id_producto = p.id_producto 
          WHERE c.id_usuario = ?`,
         [id_usuario]
       );
@@ -573,7 +574,7 @@ app.post("/carrito/checkout", async (req, res) => {
         'SELECT stock FROM producto WHERE id_producto = ?',
         [item.id_producto]
       );
-      
+
       if (!stockRows.length || stockRows[0].stock < item.cantidad) {
         await conn.rollback();
         return res.status(400).json({
@@ -582,9 +583,9 @@ app.post("/carrito/checkout", async (req, res) => {
       }
     }
 
-    // 2. Crear venta
+    // 2. Crear venta (tabla venta según tu esquema no tiene columna 'total', solo id_venta, id_usuario, fecha)
     const [ventaResult] = await conn.query(
-      'INSERT INTO venta (id_usuario, fecha, total) VALUES (?, NOW(), 0)',
+      'INSERT INTO venta (id_usuario) VALUES (?)',
       [id_usuario]
     );
     const id_venta = ventaResult.insertId;
@@ -596,10 +597,10 @@ app.post("/carrito/checkout", async (req, res) => {
       const cantidad = Number(item.cantidad);
       const subtotal = precio * cantidad;
 
-      // Insertar detalle
+      // Insertar detalle en detalle_venta (subtotal es GENERATED STORED en tu esquema, no lo insertamos)
       await conn.query(
-        'INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio, subtotal) VALUES (?, ?, ?, ?, ?)',
-        [id_venta, item.id_producto, cantidad, precio, subtotal]
+        'INSERT INTO detalle_venta (id_venta, id_producto, cantidad, precio) VALUES (?, ?, ?, ?)',
+        [id_venta, item.id_producto, cantidad, precio]
       );
 
       // Actualizar stock
@@ -611,20 +612,16 @@ app.post("/carrito/checkout", async (req, res) => {
       total += subtotal;
     }
 
-    // 4. Actualizar total en venta
-    await conn.query(
-      'UPDATE venta SET total = ? WHERE id_venta = ?',
-      [total, id_venta]
-    );
-
-    // 5. Vaciar carrito del usuario
+    // 4. Vaciar carrito del usuario
     await conn.query(
       'DELETE FROM carrito WHERE id_usuario = ?',
       [id_usuario]
     );
 
-    // 6. Confirmar transacción
+    // 5. Confirmar transacción
     await conn.commit();
+
+    // Nota: la tabla `venta` en tu esquema no guarda el total; devolvemos el total calculado al cliente
     res.json({ 
       message: 'Compra realizada con éxito',
       id_venta,
@@ -632,9 +629,13 @@ app.post("/carrito/checkout", async (req, res) => {
     });
 
   } catch (err) {
-    console.error('Error en checkout:', err);
-    if (conn) await conn.rollback();
+    console.error('Error en checkout:', err && err.message ? err.message : err);
+    if (conn) {
+      try { await conn.rollback(); } catch (e) { /* ignore rollback errors */ }
+    }
     res.status(500).json({ error: 'Error al procesar la compra' });
+  } finally {
+    if (conn) try { conn.release(); } catch (e) { /* ignore release errors */ }
   }
 });
 
