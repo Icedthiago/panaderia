@@ -466,16 +466,50 @@ async function cargarCarrito() {
   tablaCarritoEl.innerHTML = '';
   (resp.items || []).forEach((item, idx) => {
     if (isTbody) {
+      // Render row with image, nombre, precio, cantidad, subtotal y acción eliminar
+      const imgSrc = `/imagen/${item.id_producto}`;
       tablaCarritoEl.innerHTML += `<tr>
       <td>${idx+1}</td>
+      <td>
+        <img src="${imgSrc}" class="img-thumbnail" style="width:64px;height:64px;object-fit:cover;" onerror="this.src='https://via.placeholder.com/64?text=No+Img'">
+      </td>
       <td>${escapeHtml(item.nombre)}</td>
+      <td>$${Number(item.precio).toFixed(2)}</td>
       <td>${item.cantidad}</td>
       <td>$${(item.precio*item.cantidad).toFixed(2)}</td>
+      <td>
+        <button class="btn btn-sm btn-danger btn-eliminar-item" data-idproducto="${item.id_producto}" data-idcarrito="${item.id_carrito}">Eliminar</button>
+      </td>
     </tr>`;
     } else {
-      tablaCarritoEl.insertAdjacentHTML('beforeend', `<div class="py-2">${escapeHtml(item.nombre)} x ${item.cantidad} - $${(item.precio*item.cantidad).toFixed(2)}</div>`);
+      tablaCarritoEl.insertAdjacentHTML('beforeend', `<div class="py-2 d-flex justify-content-between align-items-center">
+        <div>${escapeHtml(item.nombre)} x ${item.cantidad} - $${(item.precio*item.cantidad).toFixed(2)}</div>
+        <div><button class="btn btn-sm btn-danger btn-eliminar-item" data-idproducto="${item.id_producto}" data-idcarrito="${item.id_carrito}">Eliminar</button></div>
+      </div>`);
     }
   });
+
+  // Listeners para eliminar items del carrito
+  tablaCarritoEl.querySelectorAll('.btn-eliminar-item').forEach(btn => btn.addEventListener('click', async () => {
+    const id_producto = btn.dataset.idproducto || btn.dataset.idproducto || btn.getAttribute('data-idproducto');
+    const id_carrito = btn.dataset.idcarrito || btn.getAttribute('data-idcarrito');
+    try {
+      // Preferir endpoint por producto si tenemos id_producto
+      if (id_producto) {
+        const res = await fetchJson('/carrito/eliminarProducto', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ id_producto: Number(id_producto) }) });
+        if (res.error) throw new Error(res.error);
+      } else if (id_carrito) {
+        const res = await fetchJson('/carrito/eliminar', { method: 'POST', headers: { 'Content-Type':'application/json' }, body: JSON.stringify({ id_carrito: Number(id_carrito) }) });
+        if (res.error) throw new Error(res.error);
+      }
+      showToast('Producto eliminado del carrito', 'success');
+      await cargarCarrito();
+      actualizarBadge();
+    } catch (err) {
+      console.error('Error eliminando del carrito:', err);
+      showToast(err.message || 'Error eliminando del carrito', 'error');
+    }
+  }));
 }
 
 async function actualizarBadge() {
@@ -529,15 +563,15 @@ async function doCheckout() {
 
 async function vaciarCarrito() {
   try {
-    const resp = await fetch('/carrito').then(r => r.json());
-    const items = resp.items || [];
-    for (const it of items) {
-      await fetch('/carrito/eliminar', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({ id_carrito: it.id_carrito }) }).then(r=>r.json());
-    }
-    cargarCarrito();
+    // Llamada directa al endpoint para vaciar el carrito
+    const res = await fetchJson('/carrito/vaciar', { method: 'POST' });
+    if (res.error) throw new Error(res.error);
+    showToast('Carrito vaciado', 'success');
+    await cargarCarrito();
     actualizarBadge();
   } catch (err) {
     console.error('Error vaciando carrito', err);
+    showToast(err.message || 'Error vaciando carrito', 'error');
   }
 }
 

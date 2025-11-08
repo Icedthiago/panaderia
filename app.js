@@ -532,6 +532,36 @@ app.post("/carrito/eliminar", async (req, res) => {
     }
 });
 
+// Eliminar producto del carrito por id_producto (útil desde el frontend)
+app.post('/carrito/eliminarProducto', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'No autenticado.' });
+  const id_usuario = req.session.user.id_usuario;
+  const { id_producto } = req.body;
+  if (!id_producto) return res.status(400).json({ error: 'id_producto obligatorio.' });
+
+  try {
+    await con.promise().query('DELETE FROM carrito WHERE id_usuario = ? AND id_producto = ?', [id_usuario, id_producto]);
+    return res.json({ mensaje: 'Producto eliminado del carrito.' });
+  } catch (err) {
+    console.error('Error eliminando producto del carrito:', err);
+    return res.status(500).json({ error: 'Error al eliminar producto del carrito.' });
+  }
+});
+
+// Vaciar por completo el carrito del usuario
+app.post('/carrito/vaciar', async (req, res) => {
+  if (!req.session.user) return res.status(401).json({ error: 'No autenticado.' });
+  const id_usuario = req.session.user.id_usuario;
+
+  try {
+    await con.promise().query('DELETE FROM carrito WHERE id_usuario = ?', [id_usuario]);
+    return res.json({ mensaje: 'Carrito vaciado.' });
+  } catch (err) {
+    console.error('Error vaciando carrito:', err);
+    return res.status(500).json({ error: 'Error al vaciar el carrito.' });
+  }
+});
+
 // Checkout: descontar stock, guardar venta y vaciar carrito
 app.post("/carrito/checkout", async (req, res) => {
   if (!req.session.user) {
