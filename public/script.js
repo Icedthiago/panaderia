@@ -429,43 +429,6 @@ async function cargarProductos() {
     btn.addEventListener('click', () => borrarProducto(btn.dataset.id)));
   tablaEl.querySelectorAll('.btn-agregar').forEach(btn => 
     btn.addEventListener('click', () => agregarAlCarrito(btn.dataset.id)));
-    let acciones = '';
-    if (currentUser?.rol === 'admin') {
-      acciones = `<button class="btn btn-sm btn-warning me-1 btn-editar" data-prod='${JSON.stringify(prod).replace(/'/g, "&#39;")}'>Editar</button>
-                  <button class="btn btn-sm btn-danger btn-borrar" data-id="${prod.id_producto}">Borrar</button>`;
-    } else {
-      acciones = `<button class="btn btn-sm btn-primary btn-agregar" data-id="${prod.id_producto}" ${prod.stock<=0?'disabled':''}>Agregar al carrito</button>`;
-    }
-    if (isTbody) {
-      tablaEl.innerHTML += `
-      <tr>
-        <td>${idx+1}</td>
-        <td><img src="${imgSrc}" class="img-thumbnail" style="width:80px;height:80px;object-fit:cover;"></td>
-        <td>${escapeHtml(prod.nombre)}</td>
-        <td>${escapeHtml(prod.temporada||'')}</td>
-        <td class="fw-semibold text-success">$${Number(prod.precio).toFixed(2)}</td>
-        <td>${prod.stock}</td>
-        <td>${acciones}</td>
-      </tr>
-    `;
-    } else {
-      // fallback: render simple card into a container
-      tablaEl.insertAdjacentHTML('beforeend', `
-        <div class="col-md-4">
-          <div class="card shadow-sm mb-3">
-            <img src="${imgSrc}" class="card-img-top" style="height:200px;object-fit:cover;">
-            <div class="card-body">
-              <h5 class="card-title">${escapeHtml(prod.nombre)}</h5>
-              <p class="card-text">${escapeHtml(prod.descripcion||'')}</p>
-              <div class="d-flex justify-content-between align-items-center">
-                <small class="text-muted">$${Number(prod.precio).toFixed(2)}</small>
-                ${acciones}
-              </div>
-            </div>
-          </div>
-        </div>
-      `);
-    }
   };
 
   // Delegación de eventos botones

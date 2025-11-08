@@ -23,11 +23,17 @@ app.use(bodyParser.urlencoded({ extended: true }));
 app.use(express.static("public"));
 
 // 3) Session (usa SECRET desde .env en producción)
+// Si estamos detrás de un proxy (Render), confiar en el proxy para que cookie.secure funcione
+app.set('trust proxy', 1);
 app.use(session({
   secret: process.env.SESSION_SECRET || "cambiar_esto_en_produccion",
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 24 } // 1 día
+  cookie: { 
+    maxAge: 1000 * 60 * 60 * 24, // 1 día
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
+  }
 }));
 
 // 4) Multer (configuración simple; si quieres memoryStorage ajusta aquí)
@@ -35,24 +41,27 @@ const storage = multer.memoryStorage(); // guarda en memoria (usa diskStorage si
 const upload = multer({ storage });
 
 // 5) Conexión MySQL usando .env
-const con = mysql.createConnection({
+// Usamos un pool con promise() para estabilidad en entornos cloud (Render) y concurrencia
+const con = mysql.createPool({
   host: process.env.DB_HOST,
   user: process.env.DB_USER,
   password: process.env.DB_PASSWORD,
   database: process.env.DB_NAME,
   port: Number(process.env.DB_PORT || 3306),
-  // si la conexión remota requiere TLS o flags especiales, ahí los agregas
+  waitForConnections: true,
+  connectionLimit: Number(process.env.DB_CONNECTION_LIMIT || 10),
+  queueLimit: 0
 });
 
-// 6) Conectar y verificar
-con.connect((err) => {
-  if (err) {
-    console.error("❌ Error al conectar a la base de datos:", err);
-    // opcional: process.exit(1);
-  } else {
-    console.log("✅ Conectado a MySQL:", process.env.DB_HOST, "DB:", process.env.DB_NAME);
+// 6) Verificar conexión inicial (no bloquear el start si falla, pero loggear)
+(async () => {
+  try {
+    const [rows] = await con.promise().query('SELECT 1 as ok');
+    console.log('✅ MySQL pool OK - host:', process.env.DB_HOST, 'db:', process.env.DB_NAME);
+  } catch (err) {
+    console.error('❌ Error comprobando la BD (intentando continuar):', err && err.message ? err.message : err);
   }
-});
+})();
 
 // exportar con si lo necesitas en otros módulos
 // export { con };
@@ -847,8 +856,9 @@ app.post('/usuarios/editar/:id', async (req, res) => {
 
 
 // --- Puerto ---
-app.listen(10000, () => {
-    console.log("Servidor escuchando en el puerto 10000");
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor escuchando en el puerto ${PORT}`);
 });
 
 // Obtener producto por id (para poblar modal de edición)
